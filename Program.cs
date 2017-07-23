@@ -16,7 +16,7 @@ namespace BirthdayCommander
 
         private static string _saveFileName = "BirthdayReminderSettings.txt";
 
-        private static string _birthdayInputFormat = "Full name + day they were born, example: Jakub Rak+29.10.1991";
+        private static string _birthdayInputFormat = "Full name +\nday they were born +\nhow many days to alert you in advance +\nhow often (in days)\nexample: Jakub Rak+29.10.1991+30+2";
 
         private static char _inputFormatDelimiter = '+';
 
@@ -32,7 +32,7 @@ namespace BirthdayCommander
                 editBirthdateEntries(allWatchedBirthdays);
             }
 
-            List<BirthdateEntry> birthdayBoys = FindImpendingBirthdaysForTheNext_N_Days(120, allWatchedBirthdays);
+            List<BirthdateEntry> birthdayBoys = FindImpendingBirthdaysForTheNext_N_Days(30, allWatchedBirthdays);
             if (birthdayBoys.Count > 0)
             {
                 printBirthdayBoys(birthdayBoys);
@@ -59,11 +59,11 @@ namespace BirthdayCommander
                         GetNextBirthday(birthdayBoy).ToShortDateString() + " (born " + birthdayBoy.birthdate.ToShortDateString() + ")");
                 }
             }
-        }       
+        }  
 
         private static void printFirstEditHelp()
         {
-            Console.WriteLine("You may add new watched birthdays by typing: \n\n" + _birthdayInputFormat);
+            Console.WriteLine("You may add new watched birthdays by typing commands using this format: \n\n" + _birthdayInputFormat);
             Console.WriteLine("\nIf you wish to delete a watched birthday, type DELETE+n where n is the index number of the entry");
             Console.WriteLine("\n------------------------------------------------------------------------------------------------------\n\n");
         }
@@ -95,12 +95,14 @@ namespace BirthdayCommander
                     allBirthdays.RemoveAt(indexToRemove);
                     saveSettings(allBirthdays);
                 }
-                else if (command.Length == 2)
+                else if (command.Length == 4)
                 {
                     BirthdateEntry newBirthday = new BirthdateEntry()
                     {
                         fullName = command[0],
-                        lastShown = DateTime.Now.AddDays(-30)
+                        lastShown = DateTime.Now.AddDays(-30),
+                        checkFutureXDays = Convert.ToInt32(command[2]),
+                        remindEveryXDays = Convert.ToInt32(command[3])
                     };
                     bool parseResult = DateTime.TryParse(
                         command[1],
@@ -131,8 +133,11 @@ namespace BirthdayCommander
             {
                 if (GetETAInDays(birthdayBoyCandidate) < numberOfFollowingDaysToCheck)
                 {
-                    birthdaysComingUp.Add(birthdayBoyCandidate);
-                    birthdayBoyCandidate.lastShown = DateTime.Now;
+                    if(!wasThisBirthdayRemindedRecently(birthdayBoyCandidate))
+                    {
+                        birthdaysComingUp.Add(birthdayBoyCandidate);
+                        birthdayBoyCandidate.lastShown = DateTime.Now;
+                    }
                 }
             }
             if (birthdaysComingUp.Count > 0)
@@ -142,15 +147,10 @@ namespace BirthdayCommander
             return birthdaysComingUp;
         }
 
-        private static DateTime GetNextBirthday(BirthdateEntry birthdayBoy)
+        private static bool wasThisBirthdayRemindedRecently(BirthdateEntry birthdayBoy)
         {
-            DateTime birthday = birthdayBoy.birthdate;
-            birthday = birthday.AddYears(DateTime.Now.Year - birthday.Year);
-            if (birthday < DateTime.Now)
-            {
-                birthday = birthday.AddYears(1);
-            }
-            return birthday;
+            //TODO
+            return false;
         }
 
         private static int GetETAInDays(BirthdateEntry birthdayBoy)
@@ -165,6 +165,17 @@ namespace BirthdayCommander
             DateTime bigDay = GetNextBirthday(birthdayBoy);
             int difference = birthdayBoy.birthdate.Year - bigDay.Year;
             return -difference;
+        }
+
+        private static DateTime GetNextBirthday(BirthdateEntry birthdayBoy)
+        {
+            DateTime birthday = birthdayBoy.birthdate;
+            birthday = birthday.AddYears(DateTime.Now.Year - birthday.Year);
+            if (birthday < DateTime.Now)
+            {
+                birthday = birthday.AddYears(1);
+            }
+            return birthday;
         }
 
         private static List<BirthdateEntry> bubbleSortBirthdayBoys(List<BirthdateEntry> birthdayBoys)

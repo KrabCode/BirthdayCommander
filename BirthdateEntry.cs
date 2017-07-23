@@ -10,7 +10,7 @@ namespace BirthdayCommander
         public string fullName;
         public DateTime birthdate;
         public DateTime lastShown;
-
-
+        public int remindEveryXDays;
+        public int checkFutureXDays;
     }
 }

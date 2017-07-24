@@ -21,7 +21,7 @@ namespace BirthdayCommander
 
         private static string _saveFileName = "BirthdayReminderSettings.txt";
 
-        private static string _birthdayInputFormat = "\tFull name +\n\tday they were born +\n\thow many days to alert you in advance +\n\thow often (in days)\n\texample: Jakub Rak+29.10.1991+30+2";
+        private static string _birthdayInputFormat = "\tFull name +\n\tday they were born +\n\thow many days to alert you in advance +\n\thow often (in days)\n\texample: Jakub Rak+29.10.1991+30+5";
 
         private static char _inputFormatDelimiter = '+';
 
@@ -34,9 +34,7 @@ namespace BirthdayCommander
 
         static void Main(string[] args)
         {
-            Console.Title = _programName;
             List<BirthdateEntry> allWatchedBirthdays = LoadSettings();
-            
             if (args.Contains(_quietModeArgument))
             {
                 List<BirthdateEntry> birthdayBoys = FindImpendingBirthdays(allWatchedBirthdays);
@@ -49,7 +47,7 @@ namespace BirthdayCommander
             }
             else
             {
-
+                Console.Title = _programName;
                 EditBirthdateEntries(allWatchedBirthdays);
             }
         }
@@ -84,8 +82,9 @@ namespace BirthdayCommander
             Console.WriteLine("Today is " + DateTime.Now + "\n");
             Console.WriteLine("How to use this editor:\n\n");
             Console.WriteLine("NEW: You may add new watched birthdays by typing commands using this format: \n" + _birthdayInputFormat);
-            Console.WriteLine("\nDELETE: To DELETE an entry by typing DELETE+n where n is the index number of the entry");
-            Console.WriteLine("\nAUTORUN: To set up AUTORUN on startup which will stay hidden if no birthdays are coming up, use the AUTORUN command");
+            Console.WriteLine("\nDELETE: You can DELETE an entry by typing DELETE+n where n is the index number of the entry");
+            Console.WriteLine("\nAUTORUN: You can set the app to AUTORUN when computer turns on with the AUTORUN command. \n\tIt will stay hidden if no birthdays are coming up.");
+            Console.WriteLine("\nEXIT: Exit the program by pressing the cute X in the top right corner");
             Console.WriteLine("\n------------------------------------------------------------------------------------------------------\n\n");
         }
 
@@ -133,7 +132,7 @@ namespace BirthdayCommander
                         out newBirthday.birthdate);
                     if (!parseResult)
                     {
-                        Console.Write("Unable to parse the date. Try using the following format: " + CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern + "\n\n-----------------------------------\n\n");
+                        Console.Write("Could not understand the date. Try using the following format: " + CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern + "\n\n-----------------------------------\n\n");
                     }
                     else
                     {
@@ -254,7 +253,7 @@ namespace BirthdayCommander
             }
             else
             {
-                Console.WriteLine(_programName + " could not be copied into startup folder. Try adding it manually?");
+                Console.WriteLine(_programName + " could not be copied into startup folder. Try adding it manually with the \"-quiet\" argument after the target path.");
             }
             Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.Startup));
         }
@@ -278,7 +277,6 @@ namespace BirthdayCommander
             {
                 string json = System.IO.File.ReadAllText(_saveFilePath + _saveFileName);
                 List<BirthdateEntry> items = JsonConvert.DeserializeObject<List<BirthdateEntry>>(json);
-                Console.WriteLine("Settings loaded successfully.\n");
                 return items;
             }
             else
@@ -287,5 +285,28 @@ namespace BirthdayCommander
             }
 
         }
+
+        //SHOW / HIDE CONSOLE WINDOW
+
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetConsoleWindow();
+
+        [DllImport("user32.dll")]
+        static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        const int SW_HIDE = 0;
+        const int SW_SHOW = 5;
+
+        public static void HideWindow()
+        {
+            var handle = GetConsoleWindow();
+            ShowWindow(handle, SW_HIDE);
+        }
+
+        public static void ShowWindow()
+        {
+            var handle = GetConsoleWindow();
+            ShowWindow(handle, SW_SHOW);
+        }        
     }
 }

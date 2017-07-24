@@ -1,10 +1,15 @@
-﻿using Newtonsoft.Json;
+﻿using IWshRuntimeLibrary;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace BirthdayCommander
 {
@@ -12,32 +17,40 @@ namespace BirthdayCommander
     {
         private static string _saveFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BirthdayCommander\\";
 
-        private static string _programName = "BIRTHDAY COMMANDER";
+        private static string _programName = "BirthdayCommander";
 
         private static string _saveFileName = "BirthdayReminderSettings.txt";
 
-        private static string _birthdayInputFormat = "Full name +\nday they were born +\nhow many days to alert you in advance +\nhow often (in days)\n\texample: Jakub Rak+29.10.1991+30+2";
+        private static string _birthdayInputFormat = "\tFull name +\n\tday they were born +\n\thow many days to alert you in advance +\n\thow often (in days)\n\texample: Jakub Rak+29.10.1991+30+2";
 
         private static char _inputFormatDelimiter = '+';
 
+        private static string _quietModeArgument = "-quiet";
+
         private static string _deleteInputKeyword = "DELETE";
+
+        private static string _addToStartupKeyword = "AUTORUN";
 
 
         static void Main(string[] args)
         {
             Console.Title = _programName;
             List<BirthdateEntry> allWatchedBirthdays = loadSettings();
-            if (args.Contains("-edit"))
+            
+            if (args.Contains(_quietModeArgument))
             {
-                editBirthdateEntries(allWatchedBirthdays);
+                List<BirthdateEntry> birthdayBoys = FindImpendingBirthdays(allWatchedBirthdays);
+                if (birthdayBoys.Count > 0)
+                {
+                    printBirthdayBoys(birthdayBoys);
+                    Console.WriteLine("\nPress any key to confirm");
+                    Console.ReadLine();
+                }
             }
-
-            List<BirthdateEntry> birthdayBoys = FindImpendingBirthdays(allWatchedBirthdays);
-            if (birthdayBoys.Count > 0)
+            else
             {
-                printBirthdayBoys(birthdayBoys);
-                Console.WriteLine("\nPress any key to confirm");
-                Console.ReadLine();
+
+                EditBirthdateEntries(allWatchedBirthdays);
             }
         }
 
@@ -50,40 +63,46 @@ namespace BirthdayCommander
                 Console.WriteLine("No birthdays to show");
             } else {
                 BubbleSortBirthdayBoysByETA(birthdayBoys);
-                for (int i = 0; i < birthdayBoys.Count; i++)
+                for (int entryIndex = 0; entryIndex < birthdayBoys.Count; entryIndex++)
                 {
-                    BirthdateEntry birthdayBoy = birthdayBoys[i];
-                    Console.WriteLine(i + ": " + birthdayBoy.fullName+
-                        " is turning " + GetNextAge(birthdayBoy) +
-                        " in " + GetETAInDays(birthdayBoy) + " days on " +
-                        GetNextBirthday(birthdayBoy).ToShortDateString() + " (born " + birthdayBoy.birthdate.ToShortDateString() + ")" +
-                        "\n\t-reminding you " + birthdayBoy.checkFutureXDays + " days in advance every " + birthdayBoy.remindEveryXDays + "days\n");
+                    BirthdateEntry birthdayBoy = birthdayBoys[entryIndex];
+                    Console.WriteLine("{0}: {1} is turning {2} in {3} days on {4} (born {5})\n\t-reminding you {6} days in advance every {7} days\n",
+                        entryIndex,
+                        birthdayBoy.fullName,
+                        GetNextAge(birthdayBoy),
+                        GetETAInDays(birthdayBoy),
+                        GetNextBirthday(birthdayBoy).ToShortDateString(),
+                        birthdayBoy.birthdate.ToShortDateString(),
+                        birthdayBoy.checkFutureXDays,
+                        birthdayBoy.remindEveryXDays);
                 }
             }
         }  
 
         private static void printFirstEditHelp()
         {
-            Console.WriteLine("You may add new watched birthdays by typing commands using this format: \n\n" + _birthdayInputFormat);
-            Console.WriteLine("\nIf you wish to delete a watched birthday, type DELETE+n where n is the index number of the entry");
+            Console.WriteLine("Today is " + DateTime.Now + "\n");
+            Console.WriteLine("How to use this editor:\n\n");
+            Console.WriteLine("NEW: You may add new watched birthdays by typing commands using this format: \n" + _birthdayInputFormat);
+            Console.WriteLine("\nDELETE: To DELETE an entry by typing DELETE+n where n is the index number of the entry");
+            Console.WriteLine("\nAUTORUN: To set up AUTORUN on startup which will stay hidden if no birthdays are coming up, use the AUTORUN command");
             Console.WriteLine("\n------------------------------------------------------------------------------------------------------\n\n");
         }
 
         private static void printEditHelp(List<BirthdateEntry> allBirthdays)
         {
-            Console.WriteLine("Today is " + DateTime.Now + "\n");
             if (allBirthdays.Count > 0)
             {
                 Console.WriteLine("Currently watched birthdays:\n");
                 printBirthdayBoys(allBirthdays);
             }
-            Console.WriteLine("\n------------------------------------------------------------------------------------------------------\n\n");
+            Console.WriteLine("------------------------------------------------------------------------------------------------------\n");
             Console.WriteLine("\nEnter new command and confirm with ENTER:");
         }
 
         //USER INPUT
 
-        private static void editBirthdateEntries(List<BirthdateEntry> allBirthdays)
+        private static void EditBirthdateEntries(List<BirthdateEntry> allBirthdays)
         {
             printFirstEditHelp();
             printEditHelp(allBirthdays);
@@ -95,6 +114,8 @@ namespace BirthdayCommander
                     int indexToRemove = Convert.ToInt32(command[1]);
                     allBirthdays.RemoveAt(indexToRemove);
                     saveSettings(allBirthdays);
+                }else if(command[0] == _addToStartupKeyword){
+                    AddShortcutToStartup();
                 }
                 else if (command.Length == 4)
                 {
@@ -204,7 +225,39 @@ namespace BirthdayCommander
                 }
             }
             return birthdayBoys;
-        }        
+        }
+
+        public static void AddShortcutToStartup()
+        {
+            string filepathShortcut = Environment.GetFolderPath(Environment.SpecialFolder.Startup) + "\\" + _programName + ".lnk";
+            string filepathThis = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\" + _programName + ".exe";
+            
+            bool success = false;
+            try
+            {
+                WshShell shell = new WshShell();                
+                IWshShortcut shortcut = (IWshShortcut)shell.CreateShortcut(filepathShortcut);
+                shortcut.Description = "Shortcut to quietly check whether any known birthdays are coming up and if so - alert the user";
+                shortcut.TargetPath = filepathThis;
+                shortcut.Arguments= _quietModeArgument;
+                shortcut.Save();
+
+                success = true;
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            if (success)
+            {
+                Console.WriteLine(_programName + " copied successfully to startup folder. If you move this exe, run the AUTORUN command again afterwards.");
+            }
+            else
+            {
+                Console.WriteLine(_programName + " could not be copied into startup folder. Try adding it manually?");
+            }
+            Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.Startup));
+        }
 
         //INPUT OUTPUT OPERATIONS
 
@@ -215,15 +268,15 @@ namespace BirthdayCommander
                 Directory.CreateDirectory(_saveFilePath);
             }
             string json = JsonConvert.SerializeObject(allBirthdays, Formatting.Indented);
-            File.WriteAllLines(_saveFilePath + _saveFileName, new String[] { json }, Encoding.UTF8);
+            System.IO.File.WriteAllLines(_saveFilePath + _saveFileName, new String[] { json }, Encoding.UTF8);
             Console.WriteLine("Settings saved successfully to "  + _saveFilePath + _saveFileName + "\n");
         }
 
         private static List<BirthdateEntry> loadSettings()
         {
-            if (File.Exists(_saveFilePath + _saveFileName))
+            if (System.IO.File.Exists(_saveFilePath + _saveFileName))
             {
-                string json = File.ReadAllText(_saveFilePath + _saveFileName);
+                string json = System.IO.File.ReadAllText(_saveFilePath + _saveFileName);
                 List<BirthdateEntry> items = JsonConvert.DeserializeObject<List<BirthdateEntry>>(json);
                 Console.WriteLine("Settings loaded successfully.\n");
                 return items;

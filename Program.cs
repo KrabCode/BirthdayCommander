@@ -34,6 +34,7 @@ namespace BirthdayCommander
 
         static void Main(string[] args)
         {
+            Console.Title = _programName;
             List<BirthdateEntry> allWatchedBirthdays = LoadSettings();
             if (args.Contains(_quietModeArgument))
             {
@@ -46,8 +47,7 @@ namespace BirthdayCommander
                 }
             }
             else
-            {
-                Console.Title = _programName;
+            {                
                 EditBirthdateEntries(allWatchedBirthdays);
             }
         }

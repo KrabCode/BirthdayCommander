@@ -16,7 +16,7 @@ namespace BirthdayCommander
 
         private static string _saveFileName = "BirthdayReminderSettings.txt";
 
-        private static string _birthdayInputFormat = "Full name +\nday they were born +\nhow many days to alert you in advance +\nhow often (in days)\nexample: Jakub Rak+29.10.1991+30+2";
+        private static string _birthdayInputFormat = "Full name +\nday they were born +\nhow many days to alert you in advance +\nhow often (in days)\n\texample: Jakub Rak+29.10.1991+30+2";
 
         private static char _inputFormatDelimiter = '+';
 
@@ -101,7 +101,7 @@ namespace BirthdayCommander
                     BirthdateEntry newBirthday = new BirthdateEntry()
                     {
                         fullName = command[0],
-                        lastShown = DateTime.Now.AddDays(-30),
+                        lastShown = DateTime.Now.AddYears(-1),
                         checkFutureXDays = Convert.ToInt32(command[2]),
                         remindEveryXDays = Convert.ToInt32(command[3])
                     };

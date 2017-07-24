@@ -10,7 +10,7 @@ namespace BirthdayCommander
 {
     class Program
     {
-        private static string _saveFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BirthdayReminder\\";
+        private static string _saveFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BirthdayCommander\\";
 
         private static string _programName = "BIRTHDAY COMMANDER";
 
@@ -32,7 +32,7 @@ namespace BirthdayCommander
                 editBirthdateEntries(allWatchedBirthdays);
             }
 
-            List<BirthdateEntry> birthdayBoys = FindImpendingBirthdaysForTheNext_N_Days(30, allWatchedBirthdays);
+            List<BirthdateEntry> birthdayBoys = FindImpendingBirthdays(allWatchedBirthdays);
             if (birthdayBoys.Count > 0)
             {
                 printBirthdayBoys(birthdayBoys);
@@ -49,14 +49,15 @@ namespace BirthdayCommander
             {
                 Console.WriteLine("No birthdays to show");
             } else {
-                bubbleSortBirthdayBoys(birthdayBoys);
+                BubbleSortBirthdayBoysByETA(birthdayBoys);
                 for (int i = 0; i < birthdayBoys.Count; i++)
                 {
                     BirthdateEntry birthdayBoy = birthdayBoys[i];
                     Console.WriteLine(i + ": " + birthdayBoy.fullName+
                         " is turning " + GetNextAge(birthdayBoy) +
                         " in " + GetETAInDays(birthdayBoy) + " days on " +
-                        GetNextBirthday(birthdayBoy).ToShortDateString() + " (born " + birthdayBoy.birthdate.ToShortDateString() + ")");
+                        GetNextBirthday(birthdayBoy).ToShortDateString() + " (born " + birthdayBoy.birthdate.ToShortDateString() + ")" +
+                        "\n\t-reminding you " + birthdayBoy.checkFutureXDays + " days in advance every " + birthdayBoy.remindEveryXDays + "days\n");
                 }
             }
         }  
@@ -80,7 +81,7 @@ namespace BirthdayCommander
             Console.WriteLine("\nEnter new command and confirm with ENTER:");
         }
 
-        //USER INPUT OPERATIONS
+        //USER INPUT
 
         private static void editBirthdateEntries(List<BirthdateEntry> allBirthdays)
         {
@@ -111,7 +112,7 @@ namespace BirthdayCommander
                         out newBirthday.birthdate);
                     if (!parseResult)
                     {
-                        Console.Write("Unable to parse the date. Try using the following format: " + CultureInfo.CurrentCulture.DateTimeFormat.LongDatePattern + "\n\n-----------------------------------\n\n");
+                        Console.Write("Unable to parse the date. Try using the following format: " + CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern + "\n\n-----------------------------------\n\n");
                     }
                     else
                     {
@@ -126,14 +127,14 @@ namespace BirthdayCommander
 
         //LOGIC
 
-        private static List<BirthdateEntry> FindImpendingBirthdaysForTheNext_N_Days(int numberOfFollowingDaysToCheck, List<BirthdateEntry> allKnownBirthdays)
+        private static List<BirthdateEntry> FindImpendingBirthdays(List<BirthdateEntry> allKnownBirthdays)
         {
             List<BirthdateEntry> birthdaysComingUp = new List<BirthdateEntry>();
             foreach (BirthdateEntry birthdayBoyCandidate in allKnownBirthdays)
             {
-                if (GetETAInDays(birthdayBoyCandidate) < numberOfFollowingDaysToCheck)
+                if (GetETAInDays(birthdayBoyCandidate) < birthdayBoyCandidate.checkFutureXDays)
                 {
-                    if(!wasThisBirthdayRemindedRecently(birthdayBoyCandidate))
+                    if(!WasThisBirthdayRemindedRecently(birthdayBoyCandidate))
                     {
                         birthdaysComingUp.Add(birthdayBoyCandidate);
                         birthdayBoyCandidate.lastShown = DateTime.Now;
@@ -147,10 +148,14 @@ namespace BirthdayCommander
             return birthdaysComingUp;
         }
 
-        private static bool wasThisBirthdayRemindedRecently(BirthdateEntry birthdayBoy)
+        private static bool WasThisBirthdayRemindedRecently(BirthdateEntry birthdayBoy)
         {
-            //TODO
-            return false;
+            int daysAgoReminded = DateTime.Now.Subtract(birthdayBoy.lastShown).Days;
+            if(daysAgoReminded > birthdayBoy.remindEveryXDays)
+            {
+                return false;
+            }
+            return true;
         }
 
         private static int GetETAInDays(BirthdateEntry birthdayBoy)
@@ -178,7 +183,7 @@ namespace BirthdayCommander
             return birthday;
         }
 
-        private static List<BirthdateEntry> bubbleSortBirthdayBoys(List<BirthdateEntry> birthdayBoys)
+        private static List<BirthdateEntry> BubbleSortBirthdayBoysByETA(List<BirthdateEntry> birthdayBoys)
         {
             bool flag = true;
             BirthdateEntry temp;

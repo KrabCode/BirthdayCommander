@@ -35,14 +35,14 @@ namespace BirthdayCommander
         static void Main(string[] args)
         {
             Console.Title = _programName;
-            List<BirthdateEntry> allWatchedBirthdays = loadSettings();
+            List<BirthdateEntry> allWatchedBirthdays = LoadSettings();
             
             if (args.Contains(_quietModeArgument))
             {
                 List<BirthdateEntry> birthdayBoys = FindImpendingBirthdays(allWatchedBirthdays);
                 if (birthdayBoys.Count > 0)
                 {
-                    printBirthdayBoys(birthdayBoys);
+                    PrintBirthdayBoys(birthdayBoys);
                     Console.WriteLine("\nPress any key to confirm");
                     Console.ReadLine();
                 }
@@ -56,7 +56,7 @@ namespace BirthdayCommander
 
         //FRONT END
 
-        private static void printBirthdayBoys(List<BirthdateEntry> birthdayBoys)
+        private static void PrintBirthdayBoys(List<BirthdateEntry> birthdayBoys)
         {
             if (birthdayBoys.Count == 0)
             {
@@ -79,7 +79,7 @@ namespace BirthdayCommander
             }
         }  
 
-        private static void printFirstEditHelp()
+        private static void PrintFirstEditHelp()
         {
             Console.WriteLine("Today is " + DateTime.Now + "\n");
             Console.WriteLine("How to use this editor:\n\n");
@@ -89,12 +89,12 @@ namespace BirthdayCommander
             Console.WriteLine("\n------------------------------------------------------------------------------------------------------\n\n");
         }
 
-        private static void printEditHelp(List<BirthdateEntry> allBirthdays)
+        private static void PrintEditHelp(List<BirthdateEntry> allBirthdays)
         {
             if (allBirthdays.Count > 0)
             {
                 Console.WriteLine("Currently watched birthdays:\n");
-                printBirthdayBoys(allBirthdays);
+                PrintBirthdayBoys(allBirthdays);
             }
             Console.WriteLine("------------------------------------------------------------------------------------------------------\n");
             Console.WriteLine("\nEnter new command and confirm with ENTER:");
@@ -104,8 +104,8 @@ namespace BirthdayCommander
 
         private static void EditBirthdateEntries(List<BirthdateEntry> allBirthdays)
         {
-            printFirstEditHelp();
-            printEditHelp(allBirthdays);
+            PrintFirstEditHelp();
+            PrintEditHelp(allBirthdays);
             while (true)
             {
                 string[] command = Console.ReadLine().Split(_inputFormatDelimiter);
@@ -113,7 +113,7 @@ namespace BirthdayCommander
                 {
                     int indexToRemove = Convert.ToInt32(command[1]);
                     allBirthdays.RemoveAt(indexToRemove);
-                    saveSettings(allBirthdays);
+                    SaveSettings(allBirthdays);
                 }else if(command[0] == _addToStartupKeyword){
                     AddShortcutToStartup();
                 }
@@ -138,10 +138,10 @@ namespace BirthdayCommander
                     else
                     {
                         allBirthdays.Add(newBirthday);
-                        saveSettings(allBirthdays);
+                        SaveSettings(allBirthdays);
                     }
                 }
-                printEditHelp(allBirthdays);
+                PrintEditHelp(allBirthdays);
             }
         }
 
@@ -164,7 +164,7 @@ namespace BirthdayCommander
             }
             if (birthdaysComingUp.Count > 0)
             {
-                saveSettings(allKnownBirthdays);
+                SaveSettings(allKnownBirthdays);
             }
             return birthdaysComingUp;
         }
@@ -261,7 +261,7 @@ namespace BirthdayCommander
 
         //INPUT OUTPUT OPERATIONS
 
-        private static void saveSettings(List<BirthdateEntry> allBirthdays)
+        private static void SaveSettings(List<BirthdateEntry> allBirthdays)
         {
             if (!Directory.Exists(_saveFilePath + _saveFileName))
             {
@@ -272,7 +272,7 @@ namespace BirthdayCommander
             Console.WriteLine("Settings saved successfully to "  + _saveFilePath + _saveFileName + "\n");
         }
 
-        private static List<BirthdateEntry> loadSettings()
+        private static List<BirthdateEntry> LoadSettings()
         {
             if (System.IO.File.Exists(_saveFilePath + _saveFileName))
             {
